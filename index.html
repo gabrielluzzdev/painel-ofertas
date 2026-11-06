@@ -47,6 +47,8 @@ select{background:var(--panel);border:1px solid var(--line);color:var(--txt);bor
 .hook{color:#c8cfd9;font-size:12.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .meta{display:flex;gap:10px;color:var(--mut);font-size:12px;margin-top:auto;padding-top:6px;border-top:1px dashed var(--line)}
 .meta b{color:var(--txt)}
+.heart{position:absolute;right:8px;top:6px;z-index:2;background:rgba(0,0,0,.45);border:0;border-radius:999px;width:34px;height:34px;font-size:18px;cursor:pointer;line-height:34px;padding:0}
+.heart.on{background:#fff}
 .mark{position:absolute;left:10px;top:8px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#0b0d10}
 .analise{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 0 14px}
 .analise h3{margin:0 0 6px;font-size:13px;color:var(--acc)}
@@ -121,7 +123,10 @@ select{background:var(--panel);border:1px solid var(--line);color:var(--txt);bor
 const NICHO={saude50:{t:"Saúde 50+",e:"🩺",c1:"#0f3d2b",c2:"#1f7a55"},emagrecimento:{t:"Emagrecimento",e:"🔥",c1:"#4a1f0c",c2:"#a5481b"},relacionamento:{t:"Relacionamento",e:"💞",c1:"#3d0f33",c2:"#8a2477"}};
 const MARKS={modelar:"🎯 Vou modelar",fav:"⭐ Favorita",desc:"🗑️ Descartada"};
 let ofertas=[],meta=null;
-const st={nicho:new Set(),status:"",funil:"",nivel:"",mark:"",q:"",ord:"score"};
+const st={nicho:new Set(),status:"",funil:"",nivel:"",mark:"",q:"",ord:"score",curtidas:false};
+let likes=new Set();try{likes=new Set(JSON.parse(localStorage.getItem("mo_curtidas")||"[]"))}catch{}
+function saveLikes(){try{localStorage.setItem("mo_curtidas",JSON.stringify([...likes]))}catch{}}
+function toggleLike(id){likes.has(id)?likes.delete(id):likes.add(id);saveLikes();render();if($("#dr").classList.contains("on"))open(id)}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const safeUrl=u=>{try{const x=new URL(u);return /^https?:$/.test(x.protocol)?x.href:""}catch{return""}};
@@ -130,6 +135,8 @@ const fmtD=d=>d?d.split("-").reverse().join("/"):"—";
 function chips(){
   const f=$("#filters");f.innerHTML="";
   const add=(label,on,fn)=>{const c=document.createElement("span");c.className="chip"+(on?" on":"");c.textContent=label;c.onclick=fn;f.appendChild(c)};
+  add(`❤️ Curtidas (${ofertas.filter(o=>likes.has(o.id)).length})`,st.curtidas,()=>{st.curtidas=!st.curtidas;render()});
+  f.appendChild(Object.assign(document.createElement("span"),{className:"sep"}));
   add("Todos",st.nicho.size===0,()=>{st.nicho.clear();render()});
   for(const k in NICHO)add(NICHO[k].e+" "+NICHO[k].t,st.nicho.has(k),()=>{st.nicho.has(k)?st.nicho.delete(k):st.nicho.add(k);render()});
   f.appendChild(Object.assign(document.createElement("span"),{className:"sep"}));
@@ -145,7 +152,7 @@ function chips(){
 
 function filtered(){
   const q=st.q.trim().toLowerCase();
-  let l=ofertas.filter(o=>(!st.nicho.size||st.nicho.has(o.nicho))&&(!st.status||o.status===st.status)&&(!st.funil||o.funil===st.funil)&&(!st.nivel||(o.nivel||"white")===st.nivel)&&(st.mark?o.marcacao===st.mark:o.marcacao!=="desc"));
+  let l=ofertas.filter(o=>(!st.curtidas||likes.has(o.id))&&(!st.nicho.size||st.nicho.has(o.nicho))&&(!st.status||o.status===st.status)&&(!st.funil||o.funil===st.funil)&&(!st.nivel||(o.nivel||"white")===st.nivel)&&(st.mark?o.marcacao===st.mark:o.marcacao!=="desc"));
   if(q)l=l.filter(o=>[o.nome,o.anunciante,o.gancho,o.mecanismo,o.promessa,o.subnicho,o.especialista].join(" ").toLowerCase().includes(q));
   const k=st.ord;
   l.sort((a,b)=>k==="minerado_em"?String(b[k]||"").localeCompare(String(a[k]||"")):(Number(b[k])||0)-(Number(a[k])||0));
@@ -166,7 +173,7 @@ function render(){
     return `<article class="card" data-id="${esc(o.id)}">
     <div class="thumb" style="--c1:${n.c1};--c2:${n.c2}">
       ${o.marcacao&&MARKS[o.marcacao]?`<span class="mark">${MARKS[o.marcacao]}</span>`:""}
-      <span class="big">${n.e}</span>
+      <button class="heart${likes.has(o.id)?" on":""}" data-like="${esc(o.id)}" title="Curtir">${likes.has(o.id)?"❤️":"🤍"}</button>
       <div class="badges"><span class="b score">★ ${esc(o.score)}</span><span class="b">${esc(o.funil||"?")}</span>${o.status==="nova"?'<span class="b nova">NOVA</span>':""}${o.rosto_famoso===true?'<span class="b" style="background:var(--bad)">Rosto famoso</span>':o.rosto_famoso===false?'<span class="b" style="background:#0b0d10;color:var(--acc2)">Modelável</span>':""}${trendBadge(o)}${o.nivel==="grey"?'<span class="b" style="background:#555">Grey</span>':""}<span class="b">${esc(n.t)}</span></div>
     </div>
     <div class="body">
@@ -176,6 +183,7 @@ function render(){
       <div class="meta"><span><b>${esc(o.ads_ativos??"—")}</b> ads</span><span><b>${esc(o.dias_ativa??"—")}</b> dias</span><span>${o.fonte==="swipe"?"Swipe":o.fonte==="ambas"?"Swipe + Meta":"Meta"}</span></div>
     </div></article>`}).join("");
   g.querySelectorAll(".card").forEach(c=>c.onclick=()=>open(c.dataset.id));
+  g.querySelectorAll("[data-like]").forEach(b=>b.onclick=e=>{e.stopPropagation();toggleLike(b.dataset.like)});
 }
 
 function trendBadge(o){
@@ -214,6 +222,7 @@ function open(id){
     <div><div class="n">${esc(o.tipo_produto||"—")}</div><div class="l">Produto</div></div>
     <div><div class="n">${esc(o.preco||"—")}</div><div class="l">Preço</div></div>
   </div></div>
+  <div class="sec"><button class="btn${likes.has(o.id)?" on":""}" id="likeBtn">${likes.has(o.id)?"❤️ Curtida":"🤍 Curtir esta oferta"}</button></div>
   <div class="sec"><h3>Evolução dos anúncios ativos</h3>${histHtml(o)}</div>
   <div class="sec"><h3>Por que vale modelar</h3>${esc(o.por_que)}</div>
   <div class="sec"><h3>Gancho</h3>${esc(o.gancho)}</div>
@@ -226,6 +235,7 @@ function open(id){
   <div class="sec sub">Fonte: ${o.fonte==="swipe"?"Swipe Offers":o.fonte==="ambas"?"Swipe Offers + Biblioteca da Meta":"Biblioteca de Anúncios da Meta"} · minerado em ${fmtD(o.minerado_em)} · ${esc(o.idioma||"")} ${esc(o.pais||"")}</div>`;
   $("#dr").classList.add("on");$("#ov").classList.add("on");$("#dr").setAttribute("aria-hidden","false");
   $("#cl").onclick=close;
+  $("#likeBtn").onclick=()=>toggleLike(o.id);
 }
 function close(){$("#dr").classList.remove("on");$("#ov").classList.remove("on");$("#dr").setAttribute("aria-hidden","true")}
 $("#ov").onclick=close;document.addEventListener("keydown",e=>{if(e.key==="Escape")close()});
