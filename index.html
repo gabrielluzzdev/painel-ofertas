@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mineração de Ofertas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0d10;--panel:#12151a;--card:#161a20;--line:#232832;--txt:#e9edf2;--mut:#8b94a3;
+  --acc:#7cf23a;--acc2:#3ad0f2;--warn:#f2b33a;--bad:#f2553a;
+  --saude:#3ad08a;--emag:#f27a3a;--rel:#d03ab0;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,sans-serif;font-size:14px}
+a{color:var(--acc2)}
+header{position:sticky;top:0;z-index:5;background:rgba(11,13,16,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.wrap{max-width:1280px;margin:0 auto;padding:0 18px}
+.top{display:flex;align-items:center;gap:14px;padding:14px 0 10px;flex-wrap:wrap}
+.logo{font-weight:800;font-size:18px;letter-spacing:-.02em}
+.logo b{color:var(--acc)}
+.sub{color:var(--mut);font-size:12px}
+.grow{flex:1}
+input[type=search]{background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 12px;min-width:220px;font:inherit}
+select{background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:8px 10px;font:inherit}
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:0 0 12px;align-items:center}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--mut);padding:6px 11px;border-radius:999px;cursor:pointer;font-size:12.5px;font-weight:600;user-select:none}
+.chip.on{color:#0b0d10;background:var(--acc);border-color:var(--acc)}
+.sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.stat .n{font-size:22px;font-weight:800}
+.stat .l{color:var(--mut);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;padding-bottom:40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:transform .12s,border-color .12s;display:flex;flex-direction:column}
+.card:hover{transform:translateY(-2px);border-color:#3a4250}
+.thumb{height:130px;position:relative;display:flex;align-items:flex-end;padding:10px;background:linear-gradient(135deg,var(--c1),var(--c2))}
+.thumb .big{position:absolute;right:10px;top:8px;font-size:40px;opacity:.35}
+.badges{display:flex;gap:6px;flex-wrap:wrap}
+.b{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(0,0,0,.45);color:#fff}
+.b.score{background:#0b0d10;color:var(--acc)}
+.b.nova{background:var(--warn);color:#111}
+.body{padding:12px 13px 13px;display:flex;flex-direction:column;gap:6px;flex:1}
+.nome{font-weight:700;font-size:14.5px;line-height:1.25}
+.adv{color:var(--mut);font-size:12px}
+.hook{color:#c8cfd9;font-size:12.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.meta{display:flex;gap:10px;color:var(--mut);font-size:12px;margin-top:auto;padding-top:6px;border-top:1px dashed var(--line)}
+.meta b{color:var(--txt)}
+.mark{position:absolute;left:10px;top:8px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#0b0d10}
+.analise{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 0 14px}
+.analise h3{margin:0 0 6px;font-size:13px;color:var(--acc)}
+.analise .txt{color:#c8cfd9;line-height:1.5;white-space:pre-line;font-size:13px}
+.analise .tg{cursor:pointer;color:var(--mut);font-size:12px;margin-left:8px}
+.b.up{background:#0b0d10;color:var(--acc)}.b.down{background:#0b0d10;color:var(--bad)}.b.stop{background:var(--bad);color:#fff}
+.spark{display:block;margin-top:6px}
+.hist{font-size:12px;color:var(--mut);margin-top:6px}
+.empty{color:var(--mut);text-align:center;padding:60px 10px;border:1px dashed var(--line);border-radius:14px}
+/* drawer */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:20}
+.ov.on{display:block}
+.dr{position:fixed;top:0;right:0;height:100%;width:min(560px,100%);background:var(--panel);border-left:1px solid var(--line);z-index:21;transform:translateX(100%);transition:transform .18s;overflow:auto}
+.dr.on{transform:none}
+.dr .hd{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start}
+.dr .hd h2{margin:0;font-size:18px;line-height:1.25}
+.x{margin-left:auto;background:none;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:4px 10px;cursor:pointer;font:inherit}
+.sec{padding:14px 20px;border-bottom:1px solid var(--line)}
+.sec h3{margin:0 0 6px;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kv div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+.kv .n{font-weight:800;font-size:16px}
+.kv .l{color:var(--mut);font-size:11.5px}
+.links a{display:inline-block;margin:4px 8px 4px 0;padding:7px 11px;border-radius:9px;background:var(--card);border:1px solid var(--line);text-decoration:none;font-weight:600;font-size:12.5px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--txt);padding:8px 12px;border-radius:9px;cursor:pointer;font:inherit;font-weight:600;font-size:12.5px}
+.btn.on{background:var(--acc);color:#0b0d10;border-color:var(--acc)}
+.note{color:var(--mut);font-size:12px;margin-top:6px}
+.risk{color:var(--warn)}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}input[type=search]{min-width:0;flex:1}.kv{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div id="gate" style="position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px">
+  <form id="gf" style="background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;width:min(360px,100%);display:flex;flex-direction:column;gap:10px">
+    <div class="logo">⛏️ Mineração de <b>Ofertas</b></div>
+    <div class="sub">Digite a senha para abrir o painel.</div>
+    <input id="gp" type="password" autocomplete="current-password" placeholder="Senha" style="background:var(--card);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit">
+    <button class="btn on" type="submit">Entrar</button>
+    <div class="sub" id="gm"></div>
+  </form>
+</div>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <div class="logo">⛏️ Mineração de <b>Ofertas</b></div>
+        <div class="sub" id="upd"></div>
+      </div>
+      <div class="grow"></div>
+      <input type="search" id="q" placeholder="Buscar oferta, anunciante, mecanismo…">
+      <select id="ord">
+        <option value="score">Ordenar: Score</option>
+        <option value="ads_ativos">Ordenar: Ads ativos</option>
+        <option value="dias_ativa">Ordenar: Dias rodando</option>
+        <option value="minerado_em">Ordenar: Mais recentes</option>
+        <option value="variacao_pct">Ordenar: Mais subindo</option>
+      </select>
+    </div>
+    <div class="filters" id="filters"></div>
+  </div>
+</header>
+<main class="wrap">
+  <div class="stats" id="stats"></div>
+  <div class="analise" id="analise" style="display:none"></div>
+  <div class="grid" id="grid"></div>
+</main>
+<div class="ov" id="ov"></div>
+<aside class="dr" id="dr" aria-hidden="true"></aside>
+
+<script>
+const NICHO={saude50:{t:"Saúde 50+",e:"🩺",c1:"#0f3d2b",c2:"#1f7a55"},emagrecimento:{t:"Emagrecimento",e:"🔥",c1:"#4a1f0c",c2:"#a5481b"},relacionamento:{t:"Relacionamento",e:"💞",c1:"#3d0f33",c2:"#8a2477"}};
+const MARKS={modelar:"🎯 Vou modelar",fav:"⭐ Favorita",desc:"🗑️ Descartada"};
+let ofertas=[],meta=null;
+const st={nicho:new Set(),status:"",funil:"",nivel:"",mark:"",q:"",ord:"score"};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeUrl=u=>{try{const x=new URL(u);return /^https?:$/.test(x.protocol)?x.href:""}catch{return""}};
+const fmtD=d=>d?d.split("-").reverse().join("/"):"—";
+
+function chips(){
+  const f=$("#filters");f.innerHTML="";
+  const add=(label,on,fn)=>{const c=document.createElement("span");c.className="chip"+(on?" on":"");c.textContent=label;c.onclick=fn;f.appendChild(c)};
+  add("Todos",st.nicho.size===0,()=>{st.nicho.clear();render()});
+  for(const k in NICHO)add(NICHO[k].e+" "+NICHO[k].t,st.nicho.has(k),()=>{st.nicho.has(k)?st.nicho.delete(k):st.nicho.add(k);render()});
+  f.appendChild(Object.assign(document.createElement("span"),{className:"sep"}));
+  add("✅ Validadas (15d+)",st.status==="validada",()=>{st.status=st.status==="validada"?"":"validada";render()});
+  add("🆕 Novas",st.status==="nova",()=>{st.status=st.status==="nova"?"":"nova";render()});
+  f.appendChild(Object.assign(document.createElement("span"),{className:"sep"}));
+  for(const fu of["VSL","Quiz","Advertorial"])add(fu,st.funil===fu,()=>{st.funil=st.funil===fu?"":fu;render()});
+  f.appendChild(Object.assign(document.createElement("span"),{className:"sep"}));
+  for(const nv of["white","grey"])add(nv==="white"?"⚪ White":"🌫️ Grey",st.nivel===nv,()=>{st.nivel=st.nivel===nv?"":nv;render()});
+  f.appendChild(Object.assign(document.createElement("span"),{className:"sep"}));
+  for(const m in MARKS)add(MARKS[m],st.mark===m,()=>{st.mark=st.mark===m?"":m;render()});
+}
+
+function filtered(){
+  const q=st.q.trim().toLowerCase();
+  let l=ofertas.filter(o=>(!st.nicho.size||st.nicho.has(o.nicho))&&(!st.status||o.status===st.status)&&(!st.funil||o.funil===st.funil)&&(!st.nivel||(o.nivel||"white")===st.nivel)&&(st.mark?o.marcacao===st.mark:o.marcacao!=="desc"));
+  if(q)l=l.filter(o=>[o.nome,o.anunciante,o.gancho,o.mecanismo,o.promessa,o.subnicho,o.especialista].join(" ").toLowerCase().includes(q));
+  const k=st.ord;
+  l.sort((a,b)=>k==="minerado_em"?String(b[k]||"").localeCompare(String(a[k]||"")):(Number(b[k])||0)-(Number(a[k])||0));
+  return l;
+}
+
+function render(){
+  chips();
+  const l=filtered();
+  const val=ofertas.filter(o=>o.status==="validada").length;
+  const hoje=meta&&meta.ultima_execucao?meta.ultima_execucao.slice(0,10):null;
+  const novasHoje=hoje?ofertas.filter(o=>o.minerado_em===hoje).length:0;
+  const top=ofertas.reduce((m,o)=>Math.max(m,Number(o.ads_ativos)||0),0);
+  $("#stats").innerHTML=[["Ofertas no painel",ofertas.length],["Validadas (15d+)",val],["Novas na última mineração",novasHoje],["Maior nº de ads ativos",top]].map(([l,n])=>`<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
+  const g=$("#grid");
+  if(!l.length){g.innerHTML=`<div class="empty">${ofertas.length?"Nenhuma oferta com esses filtros.":"Ainda não há ofertas mineradas. A primeira mineração aparece aqui assim que terminar."}</div>`;return}
+  g.innerHTML=l.map(o=>{const n=NICHO[o.nicho]||{e:"📦",c1:"#222",c2:"#444",t:o.nicho};
+    return `<article class="card" data-id="${esc(o.id)}">
+    <div class="thumb" style="--c1:${n.c1};--c2:${n.c2}">
+      ${o.marcacao&&MARKS[o.marcacao]?`<span class="mark">${MARKS[o.marcacao]}</span>`:""}
+      <span class="big">${n.e}</span>
+      <div class="badges"><span class="b score">★ ${esc(o.score)}</span><span class="b">${esc(o.funil||"?")}</span>${o.status==="nova"?'<span class="b nova">NOVA</span>':""}${o.rosto_famoso===true?'<span class="b" style="background:var(--bad)">Rosto famoso</span>':o.rosto_famoso===false?'<span class="b" style="background:#0b0d10;color:var(--acc2)">Modelável</span>':""}${trendBadge(o)}${o.nivel==="grey"?'<span class="b" style="background:#555">Grey</span>':""}<span class="b">${esc(n.t)}</span></div>
+    </div>
+    <div class="body">
+      <div class="nome">${esc(o.nome)}</div>
+      <div class="adv">${esc(o.anunciante)}${o.subnicho?" · "+esc(o.subnicho):""}</div>
+      <div class="hook">${esc(o.gancho)}</div>
+      <div class="meta"><span><b>${esc(o.ads_ativos??"—")}</b> ads</span><span><b>${esc(o.dias_ativa??"—")}</b> dias</span><span>${o.fonte==="swipe"?"Swipe":o.fonte==="ambas"?"Swipe + Meta":"Meta"}</span></div>
+    </div></article>`}).join("");
+  g.querySelectorAll(".card").forEach(c=>c.onclick=()=>open(c.dataset.id));
+}
+
+function trendBadge(o){
+  const t=o.tendencia,p=Number(o.variacao_pct);
+  if(t==="parou")return '<span class="b stop">⛔ Parou</span>';
+  if(t==="subindo")return `<span class="b up">📈 ${isFinite(p)?"+"+Math.round(p)+"%":"subindo"}</span>`;
+  if(t==="caindo")return `<span class="b down">📉 ${isFinite(p)?Math.round(p)+"%":"caindo"}</span>`;
+  if(t==="estavel")return '<span class="b">➖ Estável</span>';
+  return "";
+}
+function histHtml(o){
+  const h=Array.isArray(o.historico)?o.historico.filter(x=>x&&isFinite(Number(x.ads))):[];
+  if(h.length<2)return `<div class="hist">${h.length?`${esc(h[0].ads)} anúncios em ${fmtD(h[0].data)}. `:""}A tendência aparece a partir da 2ª verificação diária.</div>`;
+  const W=480,H=60,v=h.map(x=>Number(x.ads)),mx=Math.max(...v,1),mn=Math.min(...v,0);
+  const pts=v.map((y,i)=>`${(i/(v.length-1)*W).toFixed(1)},${(H-4-(y-mn)/((mx-mn)||1)*(H-8)).toFixed(1)}`).join(" ");
+  const col=o.tendencia==="caindo"||o.tendencia==="parou"?"var(--bad)":"var(--acc)";
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none"><polyline fill="none" stroke="${col}" stroke-width="2.5" points="${pts}"/></svg>
+  <div class="hist">${h.slice(-6).map(x=>`${fmtD(x.data)}: <b>${esc(x.ads)}</b>`).join(" · ")}${o.analise?`<br>${esc(o.analise)}`:""}</div>`;
+}
+function renderAnalise(a){
+  const el=$("#analise");
+  if(!a||!a.texto){el.style.display="none";return}
+  el.style.display="block";
+  el.innerHTML=`<h3>📊 Análise geral · ${fmtD(a.data)}</h3><div class="txt">${esc(a.texto)}</div>`;
+}
+function open(id){
+  const o=ofertas.find(x=>x.id===id);if(!o)return;
+  const n=NICHO[o.nicho]||{t:o.nicho,e:""};
+  const L=[["📚 Biblioteca de Anúncios",o.link_biblioteca],["📄 Página / Anunciante",o.link_pagina],["🛒 Página de vendas",o.landing_url],["🗂️ Ver no Swipe Offers",o.link_swipe]].filter(x=>safeUrl(x[1]));
+  $("#dr").innerHTML=`<div class="hd"><div><div class="sub">${n.e} ${esc(n.t)}${o.subnicho?" · "+esc(o.subnicho):""}</div><h2>${esc(o.nome)}</h2><div class="sub">${esc(o.anunciante)}</div></div><button class="x" id="cl">Fechar</button></div>
+  <div class="sec"><div class="kv">
+    <div><div class="n">★ ${esc(o.score)}</div><div class="l">Score</div></div>
+    <div><div class="n">${esc(o.ads_ativos??"—")}</div><div class="l">Ads ativos</div></div>
+    <div><div class="n">${esc(o.dias_ativa??"—")}</div><div class="l">Dias rodando · desde ${fmtD(o.inicio)}</div></div>
+    <div><div class="n">${esc(o.funil||"—")}</div><div class="l">Funil</div></div>
+    <div><div class="n">${esc(o.tipo_produto||"—")}</div><div class="l">Produto</div></div>
+    <div><div class="n">${esc(o.preco||"—")}</div><div class="l">Preço</div></div>
+  </div></div>
+  <div class="sec"><h3>Evolução dos anúncios ativos</h3>${histHtml(o)}</div>
+  <div class="sec"><h3>Por que vale modelar</h3>${esc(o.por_que)}</div>
+  <div class="sec"><h3>Gancho</h3>${esc(o.gancho)}</div>
+  <div class="sec"><h3>Mecanismo</h3>${esc(o.mecanismo)}</div>
+  <div class="sec"><h3>Promessa</h3>${esc(o.promessa)}</div>
+  ${o.especialista?`<div class="sec"><h3>Especialista / autoridade</h3>${esc(o.especialista)}</div>`:""}
+  ${o.riscos?`<div class="sec"><h3>Riscos</h3><span class="risk">${esc(o.riscos)}</span></div>`:""}
+  <div class="sec links"><h3>Links</h3>${L.map(([t,u])=>`<a href="${esc(safeUrl(u))}" target="_blank" rel="noopener">${t}</a>`).join("")||'<span class="sub">Sem links.</span>'}</div>
+  ${o.marcacao&&MARKS[o.marcacao]?`<div class="sec"><h3>Marcação do Gabriel</h3>${MARKS[o.marcacao]}</div>`:""}
+  <div class="sec sub">Fonte: ${o.fonte==="swipe"?"Swipe Offers":o.fonte==="ambas"?"Swipe Offers + Biblioteca da Meta":"Biblioteca de Anúncios da Meta"} · minerado em ${fmtD(o.minerado_em)} · ${esc(o.idioma||"")} ${esc(o.pais||"")}</div>`;
+  $("#dr").classList.add("on");$("#ov").classList.add("on");$("#dr").setAttribute("aria-hidden","false");
+  $("#cl").onclick=close;
+}
+function close(){$("#dr").classList.remove("on");$("#ov").classList.remove("on");$("#dr").setAttribute("aria-hidden","true")}
+$("#ov").onclick=close;document.addEventListener("keydown",e=>{if(e.key==="Escape")close()});
+
+$("#q").oninput=e=>{st.q=e.target.value;render()};
+$("#ord").onchange=e=>{st.ord=e.target.value;render()};
+try{const s=JSON.parse(localStorage.getItem("mo_filtros")||"null");if(s){st.ord=s.ord||"score";(s.nicho||[]).forEach(x=>st.nicho.add(x));$("#ord").value=st.ord}}catch{}
+window.addEventListener("beforeunload",()=>{try{localStorage.setItem("mo_filtros",JSON.stringify({ord:st.ord,nicho:[...st.nicho]}))}catch{}});
+render();
+
+// ---- versão estática: dados criptografados (AES-GCM + PBKDF2) ----
+async function decrypt(pw){
+  const r=await fetch("data.enc.json?v="+Date.now(),{cache:"no-store"});
+  if(!r.ok)throw new Error("Não consegui baixar os dados ("+r.status+").");
+  const e=await r.json(), b=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);
+  const key=await crypto.subtle.deriveKey({name:"PBKDF2",salt:b(e.salt),iterations:e.iter,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["decrypt"]);
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b(e.iv)},key,b(e.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+function load(d){ofertas=d.ofertas||[];meta=d.execucao||null;renderAnalise(d.analise||null);render();updLine()}
+async function tryPw(pw,remember){
+  try{const d=await decrypt(pw);load(d);document.getElementById("gate").remove();if(remember){try{sessionStorage.setItem("mo_pw",pw)}catch{}}return true}
+  catch(e){return e}
+}
+(async()=>{
+  let saved=null;try{saved=sessionStorage.getItem("mo_pw")}catch{}
+  if(saved&&(await tryPw(saved,false))===true)return;
+  const f=document.getElementById("gf"),m=document.getElementById("gm");
+  f.onsubmit=async ev=>{ev.preventDefault();m.textContent="Abrindo…";const r=await tryPw(document.getElementById("gp").value,true);if(r!==true)m.textContent=(r&&r.name==="OperationError")?"Senha incorreta.":(r&&r.message)||"Erro ao abrir."};
+})();
+function updLine(){
+  const m=meta;
+  $("#upd").textContent=m&&m.ultima_execucao?`Última mineração: ${new Date(m.ultima_execucao).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})} · ${m.resumo||""}`:`${ofertas.length} ofertas · fontes: Swipe Offers + Biblioteca da Meta`;
+}
+</script>
+</body>
+</html>
