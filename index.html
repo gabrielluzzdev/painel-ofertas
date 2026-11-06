@@ -123,7 +123,7 @@ select{background:var(--panel);border:1px solid var(--line);color:var(--txt);bor
 const NICHO={saude50:{t:"Saúde 50+",e:"🩺",c1:"#0f3d2b",c2:"#1f7a55"},emagrecimento:{t:"Emagrecimento",e:"🔥",c1:"#4a1f0c",c2:"#a5481b"},relacionamento:{t:"Relacionamento",e:"💞",c1:"#3d0f33",c2:"#8a2477"}};
 const MARKS={modelar:"🎯 Vou modelar",fav:"⭐ Favorita",desc:"🗑️ Descartada"};
 let ofertas=[],meta=null;
-const st={nicho:new Set(),status:"",funil:"",nivel:"",mark:"",q:"",ord:"score",curtidas:false};
+const st={nicho:new Set(),status:"",funil:"",nivel:"",mark:"",q:"",ord:"score",curtidas:false,gab:false};
 let likes=new Set();try{likes=new Set(JSON.parse(localStorage.getItem("mo_curtidas")||"[]"))}catch{}
 function saveLikes(){try{localStorage.setItem("mo_curtidas",JSON.stringify([...likes]))}catch{}}
 function toggleLike(id){likes.has(id)?likes.delete(id):likes.add(id);saveLikes();render();if($("#dr").classList.contains("on"))open(id)}
@@ -135,7 +135,8 @@ const fmtD=d=>d?d.split("-").reverse().join("/"):"—";
 function chips(){
   const f=$("#filters");f.innerHTML="";
   const add=(label,on,fn)=>{const c=document.createElement("span");c.className="chip"+(on?" on":"");c.textContent=label;c.onclick=fn;f.appendChild(c)};
-  add(`❤️ Curtidas (${ofertas.filter(o=>likes.has(o.id)).length})`,st.curtidas,()=>{st.curtidas=!st.curtidas;render()});
+  add(`❤️ Curtidas do Gabriel (${ofertas.filter(o=>o.curtida===true).length})`,st.gab,()=>{st.gab=!st.gab;render()});
+  add(`🤍 Minhas curtidas (${ofertas.filter(o=>likes.has(o.id)).length})`,st.curtidas,()=>{st.curtidas=!st.curtidas;render()});
   f.appendChild(Object.assign(document.createElement("span"),{className:"sep"}));
   add("Todos",st.nicho.size===0,()=>{st.nicho.clear();render()});
   for(const k in NICHO)add(NICHO[k].e+" "+NICHO[k].t,st.nicho.has(k),()=>{st.nicho.has(k)?st.nicho.delete(k):st.nicho.add(k);render()});
@@ -152,7 +153,7 @@ function chips(){
 
 function filtered(){
   const q=st.q.trim().toLowerCase();
-  let l=ofertas.filter(o=>(!st.curtidas||likes.has(o.id))&&(!st.nicho.size||st.nicho.has(o.nicho))&&(!st.status||o.status===st.status)&&(!st.funil||o.funil===st.funil)&&(!st.nivel||(o.nivel||"white")===st.nivel)&&(st.mark?o.marcacao===st.mark:o.marcacao!=="desc"));
+  let l=ofertas.filter(o=>(!st.gab||o.curtida===true)&&(!st.curtidas||likes.has(o.id))&&(!st.nicho.size||st.nicho.has(o.nicho))&&(!st.status||o.status===st.status)&&(!st.funil||o.funil===st.funil)&&(!st.nivel||(o.nivel||"white")===st.nivel)&&(st.mark?o.marcacao===st.mark:o.marcacao!=="desc"));
   if(q)l=l.filter(o=>[o.nome,o.anunciante,o.gancho,o.mecanismo,o.promessa,o.subnicho,o.especialista].join(" ").toLowerCase().includes(q));
   const k=st.ord;
   l.sort((a,b)=>k==="minerado_em"?String(b[k]||"").localeCompare(String(a[k]||"")):(Number(b[k])||0)-(Number(a[k])||0));
@@ -173,7 +174,7 @@ function render(){
     return `<article class="card" data-id="${esc(o.id)}">
     <div class="thumb" style="--c1:${n.c1};--c2:${n.c2}">
       ${o.marcacao&&MARKS[o.marcacao]?`<span class="mark">${MARKS[o.marcacao]}</span>`:""}
-      <button class="heart${likes.has(o.id)?" on":""}" data-like="${esc(o.id)}" title="Curtir">${likes.has(o.id)?"❤️":"🤍"}</button>
+      <button class="heart${likes.has(o.id)?" on":""}" data-like="${esc(o.id)}" title="Minha curtida (neste navegador)">${likes.has(o.id)?"❤️":"🤍"}</button>${o.curtida===true?'<span class="mark" style="left:auto;right:48px;top:12px">❤️ Gabriel</span>':""}
       <div class="badges"><span class="b score">★ ${esc(o.score)}</span><span class="b">${esc(o.funil||"?")}</span>${o.status==="nova"?'<span class="b nova">NOVA</span>':""}${o.rosto_famoso===true?'<span class="b" style="background:var(--bad)">Rosto famoso</span>':o.rosto_famoso===false?'<span class="b" style="background:#0b0d10;color:var(--acc2)">Modelável</span>':""}${trendBadge(o)}${o.nivel==="grey"?'<span class="b" style="background:#555">Grey</span>':""}<span class="b">${esc(n.t)}</span></div>
     </div>
     <div class="body">
@@ -222,7 +223,7 @@ function open(id){
     <div><div class="n">${esc(o.tipo_produto||"—")}</div><div class="l">Produto</div></div>
     <div><div class="n">${esc(o.preco||"—")}</div><div class="l">Preço</div></div>
   </div></div>
-  <div class="sec"><button class="btn${likes.has(o.id)?" on":""}" id="likeBtn">${likes.has(o.id)?"❤️ Curtida":"🤍 Curtir esta oferta"}</button></div>
+  <div class="sec"><button class="btn${likes.has(o.id)?" on":""}" id="likeBtn">${likes.has(o.id)?"❤️ Curtida (por mim)":"🤍 Curtir esta oferta"}</button>${o.curtida===true?" <span class=\"sub\">· ❤️ o Gabriel curtiu</span>":""}</div>
   <div class="sec"><h3>Evolução dos anúncios ativos</h3>${histHtml(o)}</div>
   <div class="sec"><h3>Por que vale modelar</h3>${esc(o.por_que)}</div>
   <div class="sec"><h3>Gancho</h3>${esc(o.gancho)}</div>
