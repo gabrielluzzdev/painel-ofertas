@@ -41,6 +41,8 @@ select{background:var(--panel);border:1px solid var(--line);color:var(--txt);bor
 .b{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(0,0,0,.45);color:#fff}
 .b.score{background:#0b0d10;color:var(--acc)}
 .b.nova{background:var(--warn);color:#111}
+.b.tp-info{background:#1f6feb;color:#fff}.b.tp-nutra{background:#8957e5;color:#fff}.b.tp-fisico{background:#b76e00;color:#fff}.b.tp-outro{background:#444;color:#fff}
+.crs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}.cr{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;text-decoration:none;color:inherit;font-size:11.5px}.cr img{width:100%;height:170px;object-fit:cover;display:block;background:#000}.cr .ct{padding:6px 8px;line-height:1.35}.cr .cm{color:var(--mut);font-size:10.5px;margin-top:3px}
 .body{padding:12px 13px 13px;display:flex;flex-direction:column;gap:6px;flex:1}
 .nome{font-weight:700;font-size:14.5px;line-height:1.25}
 .adv{color:var(--mut);font-size:12px}
@@ -123,7 +125,7 @@ select{background:var(--panel);border:1px solid var(--line);color:var(--txt);bor
 const NICHO={saude50:{t:"Saúde 50+",e:"🩺",c1:"#0f3d2b",c2:"#1f7a55"},emagrecimento:{t:"Emagrecimento",e:"🔥",c1:"#4a1f0c",c2:"#a5481b"},relacionamento:{t:"Relacionamento",e:"💞",c1:"#3d0f33",c2:"#8a2477"}};
 const MARKS={modelar:"🎯 Vou modelar",fav:"⭐ Favorita",desc:"🗑️ Descartada"};
 let ofertas=[],meta=null;
-const st={nicho:new Set(),status:"",funil:"",nivel:"",mark:"",q:"",ord:"score",curtidas:false,gab:false};
+const st={nicho:new Set(),status:"",funil:"",nivel:"",mark:"",tipo:"",q:"",ord:"score",curtidas:false,gab:false};
 let likes=new Set();try{likes=new Set(JSON.parse(localStorage.getItem("mo_curtidas")||"[]"))}catch{}
 function saveLikes(){try{localStorage.setItem("mo_curtidas",JSON.stringify([...likes]))}catch{}}
 function toggleLike(id){likes.has(id)?likes.delete(id):likes.add(id);saveLikes();render();if($("#dr").classList.contains("on"))open(id)}
@@ -132,6 +134,12 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const safeUrl=u=>{try{const x=new URL(u);return /^https?:$/.test(x.protocol)?x.href:""}catch{return""}};
 const fmtD=d=>d?d.split("-").reverse().join("/"):"—";
 
+const TIPO={info:{t:"Infoproduto",e:"📘",c:"tp-info"},nutra:{t:"Nutra",e:"💊",c:"tp-nutra"},fisico:{t:"Físico",e:"📦",c:"tp-fisico"},outro:{t:"Outro / a confirmar",e:"❔",c:"tp-outro"}};
+const tipoDe=o=>TIPO[o.tipo_produto]?o.tipo_produto:"outro";
+const capa=o=>{const t=(o.criativos||[]).map(c=>c.thumb).find(x=>/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(x||"")||/^crt\/\d+\.jpg$/.test(x||""));return t?`;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.7)),url(${t}) center/cover`:""};
+function criativosHtml(o){const cs=o.criativos||[];if(!cs.length)return `<div class="sec"><h3>Criativos do anunciante</h3><span class="sub">Ainda não coletados${safeUrl(o.link_pagina)?` — <a href="${esc(safeUrl(o.link_pagina))}" target="_blank" rel="noopener">ver todos os anúncios dele</a>`:""}.</span></div>`;
+ const ok=t=>/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(t||"")||/^crt\/\d+\.jpg$/.test(t||"");
+ return `<div class="sec"><h3>Criativos do anunciante (${cs.length})${safeUrl(o.link_pagina)?` · <a href="${esc(safeUrl(o.link_pagina))}" target="_blank" rel="noopener" style="font-weight:600">ver todos</a>`:""}</h3><div class="crs">${cs.map(c=>`<a class="cr" href="https://www.facebook.com/ads/library/?id=${encodeURIComponent(c.ad_id)}" target="_blank" rel="noopener">${ok(c.thumb)?`<img src="${c.thumb}" alt="">`:`<img alt="">`}<div class="ct">${c.tipo==="video"?"▶ Vídeo":"🖼 Imagem"}${c.versoes>1?` · ${esc(c.versoes)} versões`:""}<div class="cm">desde ${esc(c.inicio||"")}</div><div class="cm">${esc((c.texto||"").slice(0,90))}</div></div></a>`).join("")}</div><div class="sub" style="margin-top:6px">Clique num criativo para assistir na Biblioteca de Anúncios.</div></div>`;}
 function chips(){
   const f=$("#filters");f.innerHTML="";
   const add=(label,on,fn)=>{const c=document.createElement("span");c.className="chip"+(on?" on":"");c.textContent=label;c.onclick=fn;f.appendChild(c)};
@@ -144,6 +152,8 @@ function chips(){
   add("✅ Validadas (15d+)",st.status==="validada",()=>{st.status=st.status==="validada"?"":"validada";render()});
   add("🆕 Novas",st.status==="nova",()=>{st.status=st.status==="nova"?"":"nova";render()});
   f.appendChild(Object.assign(document.createElement("span"),{className:"sep"}));
+  for(const k in TIPO)add(`${TIPO[k].e} ${TIPO[k].t} (${ofertas.filter(o=>tipoDe(o)===k&&o.marcacao!=="desc").length})`,st.tipo===k,()=>{st.tipo=st.tipo===k?"":k;render()});
+  f.appendChild(Object.assign(document.createElement("span"),{className:"sep"}));
   for(const fu of["VSL","Quiz","Advertorial"])add(fu,st.funil===fu,()=>{st.funil=st.funil===fu?"":fu;render()});
   f.appendChild(Object.assign(document.createElement("span"),{className:"sep"}));
   for(const nv of["white","grey"])add(nv==="white"?"⚪ White":"🌫️ Grey",st.nivel===nv,()=>{st.nivel=st.nivel===nv?"":nv;render()});
@@ -153,7 +163,7 @@ function chips(){
 
 function filtered(){
   const q=st.q.trim().toLowerCase();
-  let l=ofertas.filter(o=>(!st.gab||o.curtida===true)&&(!st.curtidas||likes.has(o.id))&&(!st.nicho.size||st.nicho.has(o.nicho))&&(!st.status||o.status===st.status)&&(!st.funil||o.funil===st.funil)&&(!st.nivel||(o.nivel||"white")===st.nivel)&&(st.mark?o.marcacao===st.mark:o.marcacao!=="desc"));
+  let l=ofertas.filter(o=>(!st.gab||o.curtida===true)&&(!st.curtidas||likes.has(o.id))&&(!st.nicho.size||st.nicho.has(o.nicho))&&(!st.status||o.status===st.status)&&(!st.funil||o.funil===st.funil)&&(!st.tipo||tipoDe(o)===st.tipo)&&(!st.nivel||(o.nivel||"white")===st.nivel)&&(st.mark?o.marcacao===st.mark:o.marcacao!=="desc"));
   if(q)l=l.filter(o=>[o.nome,o.anunciante,o.gancho,o.mecanismo,o.promessa,o.subnicho,o.especialista].join(" ").toLowerCase().includes(q));
   const k=st.ord;
   l.sort((a,b)=>k==="minerado_em"?String(b[k]||"").localeCompare(String(a[k]||"")):(Number(b[k])||0)-(Number(a[k])||0));
@@ -172,10 +182,10 @@ function render(){
   if(!l.length){g.innerHTML=`<div class="empty">${ofertas.length?"Nenhuma oferta com esses filtros.":"Ainda não há ofertas mineradas. A primeira mineração aparece aqui assim que terminar."}</div>`;return}
   g.innerHTML=l.map(o=>{const n=NICHO[o.nicho]||{e:"📦",c1:"#222",c2:"#444",t:o.nicho};
     return `<article class="card" data-id="${esc(o.id)}">
-    <div class="thumb" style="--c1:${n.c1};--c2:${n.c2}">
+    <div class="thumb" style="--c1:${n.c1};--c2:${n.c2}${capa(o)}">
       ${o.marcacao&&MARKS[o.marcacao]?`<span class="mark">${MARKS[o.marcacao]}</span>`:""}
       <button class="heart${likes.has(o.id)?" on":""}" data-like="${esc(o.id)}" title="Minha curtida (neste navegador)">${likes.has(o.id)?"❤️":"🤍"}</button>${o.curtida===true?'<span class="mark" style="left:auto;right:48px;top:12px">❤️ Gabriel</span>':""}
-      <div class="badges"><span class="b score">★ ${esc(o.score)}</span><span class="b">${esc(o.funil||"?")}</span>${o.status==="nova"?'<span class="b nova">NOVA</span>':""}${o.rosto_famoso===true?'<span class="b" style="background:var(--bad)">Rosto famoso</span>':o.rosto_famoso===false?'<span class="b" style="background:#0b0d10;color:var(--acc2)">Modelável</span>':""}${trendBadge(o)}${o.nivel==="grey"?'<span class="b" style="background:#555">Grey</span>':""}<span class="b">${esc(n.t)}</span></div>
+      <div class="badges"><span class="b score">★ ${esc(o.score)}</span><span class="b ${TIPO[tipoDe(o)].c}">${TIPO[tipoDe(o)].e} ${TIPO[tipoDe(o)].t}</span><span class="b">${esc(o.funil||"?")}</span>${o.status==="nova"?'<span class="b nova">NOVA</span>':""}${o.rosto_famoso===true?'<span class="b" style="background:var(--bad)">Rosto famoso</span>':o.rosto_famoso===false?'<span class="b" style="background:#0b0d10;color:var(--acc2)">Modelável</span>':""}${trendBadge(o)}${o.nivel==="grey"?'<span class="b" style="background:#555">Grey</span>':""}<span class="b">${esc(n.t)}</span></div>
     </div>
     <div class="body">
       <div class="nome">${esc(o.nome)}</div>
@@ -220,7 +230,7 @@ function open(id){
     <div><div class="n">${esc(o.ads_ativos??"—")}</div><div class="l">Ads ativos</div></div>
     <div><div class="n">${esc(o.dias_ativa??"—")}</div><div class="l">Dias rodando · desde ${fmtD(o.inicio)}</div></div>
     <div><div class="n">${esc(o.funil||"—")}</div><div class="l">Funil</div></div>
-    <div><div class="n">${esc(o.tipo_produto||"—")}</div><div class="l">Produto</div></div>
+    <div><div class="n">${TIPO[tipoDe(o)].e} ${TIPO[tipoDe(o)].t}</div><div class="l">Tipo de produto</div></div>
     <div><div class="n">${esc(o.preco||"—")}</div><div class="l">Preço</div></div>
   </div></div>
   <div class="sec"><button class="btn${likes.has(o.id)?" on":""}" id="likeBtn">${likes.has(o.id)?"❤️ Curtida (por mim)":"🤍 Curtir esta oferta"}</button>${o.curtida===true?" <span class=\"sub\">· ❤️ o Gabriel curtiu</span>":""}</div>
@@ -231,6 +241,7 @@ function open(id){
   <div class="sec"><h3>Promessa</h3>${esc(o.promessa)}</div>
   ${o.especialista?`<div class="sec"><h3>Especialista / autoridade</h3>${esc(o.especialista)}</div>`:""}
   ${o.riscos?`<div class="sec"><h3>Riscos</h3><span class="risk">${esc(o.riscos)}</span></div>`:""}
+  ${criativosHtml(o)}
   <div class="sec links"><h3>Links</h3>${L.map(([t,u])=>`<a href="${esc(safeUrl(u))}" target="_blank" rel="noopener">${t}</a>`).join("")||'<span class="sub">Sem links.</span>'}</div>
   ${o.marcacao&&MARKS[o.marcacao]?`<div class="sec"><h3>Marcação do Gabriel</h3>${MARKS[o.marcacao]}</div>`:""}
   <div class="sec sub">Fonte: ${o.fonte==="swipe"?"Swipe Offers":o.fonte==="ambas"?"Swipe Offers + Biblioteca da Meta":"Biblioteca de Anúncios da Meta"} · minerado em ${fmtD(o.minerado_em)} · ${esc(o.idioma||"")} ${esc(o.pais||"")}</div>`;
